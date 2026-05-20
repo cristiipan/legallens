@@ -1,0 +1,99 @@
+version: "3.9"
+
+# Local infra for LegalLens:
+#   - postgres       : metadata + hash-partitioned clause tables
+#   - redis-master   : task queues + heartbeats + pub/sub
+#   - redis-replica  : warm standby, promoted by Sentinel on master failure
+#   - sentinel-1/2/3 : 3-node Sentinel quorum, monitors `legallens-master`
+#
+# Pinecone is external (or use the local numpy fallback when PINECONE_API_KEY is unset).
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: legallens-postgres
+    environment:
+      POSTGRES_USER: legallens
+      POSTGRES_PASSWORD: legallens
+      POSTGRES_DB: legallens
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legallens"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis-master:
+    image: redis:7-alpine
+    container_name: legallens-redis-master
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./infra/redis-master.conf:/usr/local/etc/redis/redis.conf:ro
+      - redis_master_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  redis-replica:
+    image: redis:7-alpine
+    container_name: legallens-redis-replica
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    command: ["redis-server", "--replicaof", "redis-master", "6379", "--appendonly", "yes"]
+    volumes:
+      - redis_replica_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  sentinel-1:
+    image: redis:7-alpine
+    container_name: legallens-sentinel-1
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    command: ["redis-sentinel", "/usr/local/etc/redis/sentinel.conf"]
+    volumes:
+      - ./infra/sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
+    ports:
+      - "26379:26379"
+
+  sentinel-2:
+    image: redis:7-alpine
+    container_name: legallens-sentinel-2
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    command: ["redis-sentinel", "/usr/local/etc/redis/sentinel.conf"]
+    volumes:
+      - ./infra/sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
+    ports:
+      - "26380:26379"
+
+  sentinel-3:
+    image: redis:7-alpine
+    container_name: legallens-sentinel-3
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    command: ["redis-sentinel", "/usr/local/etc/redis/sentinel.conf"]
+    volumes:
+      - ./infra/sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
+    ports:
+      - "26381:26379"
+
+volumes:
+  postgres_data:
+  redis_master_data:
+  redis_replica_data:

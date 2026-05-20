@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Environment
+.env
+.env.local
+
+# Data
+data/
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Test/coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local vector store
+data/vectors/
