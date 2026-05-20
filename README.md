@@ -1,5 +1,8 @@
 # LegalLens
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+
 A distributed agent-powered contract review platform. An LLM agent
 autonomously identifies risk clauses and answers follow-up questions, with
 work fanned out across a pool of workers coordinated through Redis Sentinel
@@ -189,4 +192,4 @@ of contracts and measure:
 
 ## License
 
-MIT
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for the full text.
